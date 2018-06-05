@@ -1,0 +1,90 @@
+package main
+
+import (
+	"math/rand"
+	_ "github.com/google/syzkaller/sys"
+	"io/ioutil"
+	"fmt"
+	"path/filepath"
+	"runtime"
+	"github.com/google/syzkaller/prog"
+	"time"
+	."os"
+	"strconv"
+)
+
+var (
+	dir = "../workdir/temp"
+	initfile = "./init.txt"
+	transfile = "./trans.txt"
+	calllist = "./calllist.txt"
+)
+
+type Manager struct {
+	target	*prog.Target
+	initPrios	[]float32
+	findcalls	map[int]float32
+	callways	map[int]map[int]float32
+	transMaxtrix	[][]float32
+}
+
+func main() {
+	mgr := &Manager{}
+	dir_list, err := ioutil.ReadDir(dir)
+	if dir_list == nil {
+		fmt.Errorf("dir is nil: ", dir)
+		return
+	}
+	if err != nil {
+		fmt.Errorf("faild to read dir: ", dir)
+		return
+	}
+	target, err := prog.GetTarget(runtime.GOOS, runtime.GOARCH)
+	mgr.target = target
+	var corpus []*prog.Prog
+	for _, info := range dir_list {
+		if info == nil {
+			continue
+		}
+		data, err := ioutil.ReadFile(filepath.Join(dir, info.Name()))
+		if err != nil {
+			fmt.Errorf("faild to read file: ", info.Name())
+		}
+		p, err := target.Deserialize(data)
+		corpus = append(corpus, p)
+	}
+	trans, init := mgr.CalcTransMatrix(corpus)
+	calls := findCallList(target, mgr.findcalls)
+	fct := target.BuildChoiceTable(trans, calls, 1)
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano() +int64(1)*1e12))
+	fd3, err := OpenFile(calllist, O_CREATE|O_APPEND|O_RDWR, 0666)
+	for i := 1; i < 100; i++ {
+		p := target.Generate(rnd, 30, fct)
+		_, err = fd3.Write(p.Serialize())
+		fd3.WriteString("\n")
+	}
+	fd1, err := OpenFile(initfile, O_CREATE|O_APPEND|O_RDWR, 0666)
+	fd2, err := OpenFile(transfile, O_CREATE|O_APPEND|O_RDWR, 0666)
+	for _, prio := range trans {
+		for _, v := range prio {
+			_, err = fd2.WriteString(strconv.FormatFloat(float64(v), 'f', -1, 32) + " ")
+		}
+		_, err = fd2.WriteString("\n")
+	}
+	for _, v := range init {
+		_, err = fd1.WriteString(strconv.FormatFloat(float64(v), 'f', -1, 32) + " ")
+	}
+}
+
+// icy: add
+func findCallList(target *prog.Target, findCalls map[int]float32) map[*prog.Syscall]bool {
+	calls := make(map[*prog.Syscall]bool)
+	if findCalls != nil {
+		for i := range findCalls {
+			calls[target.Syscalls[i]] = true
+		}
+	} else {
+		return nil
+	}
+	return calls
+}

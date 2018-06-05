@@ -1,0 +1,21 @@
+{
+	"target": "linux/amd64",
+	"http": "127.0.0.1:56762",
+	"workdir": "/home/icy/gopath/src/github.com/google/syzkaller/workdir",
+	"vmlinux": "/home/icy/linux-fuzz/linux-master/vmlinux",
+	"image": "/home/icy/linux-fuzz/wheezy.img",
+	"sshkey": "/home/icy/linux-fuzz/ssh/id_rsa",
+	"syzkaller": "/home/icy/gopath/src/github.com/google/syzkaller",
+	"procs": 8,
+	"type": "qemu",
+	"name": "Host-1",
+	"hub_client": "Host-1",
+	"hub_addr": "192.168.1.102:32768",
+	"hub_key": "7fcc9eb1e0c8669952a27e01278da54e",
+	"vm": {
+		"count": 4,
+		"kernel": "/home/icy/linux-fuzz/linux-master/arch/x86/boot/bzImage",
+		"cpu": 1,
+		"mem": 2048
+	}
+}

@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+<head>
+	<title>syzbot</title>
+	<link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+	{{if .}}
+		<script>window.location.replace("{{.}}");</script>
+	{{else}}
+		403 Forbidden
+	{{end}}
+</body>
+</html>
